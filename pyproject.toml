@@ -1,15 +1,17 @@
 [project]
-name = "gemi2api-server"
-version = "0.1.2"
-description = "Add your description here"
+name = "gemini-orbiter"
+version = "1.0.0"
+description = "API Server built on Gemini Web"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "browser-cookie3>=0.20.1",
     "fastapi>=0.115.12",
     "gemini-webapi>=1.12.1",
-    "uvicorn[standard]>=0.34.1",
+    "uvicorn>=0.34.1",
+    "uvloop>=0.21.0",
 ]
+
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 default = true
@@ -26,4 +28,4 @@ ignore = ["E501"]  # 忽略特定规则（如行长度警告）
 
 [tool.ruff.format]
 quote-style = "double"  # 使用双引号
-indent-style = "tab"  # 使用空格缩进
+indent-style = "space"  # 使用空格缩进

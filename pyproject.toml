@@ -5,27 +5,27 @@ description = "API Server built on Gemini Web"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "browser-cookie3>=0.20.1",
     "fastapi>=0.115.12",
     "gemini-webapi>=1.12.1",
+    "loguru>=0.7.0",
+    "pydantic-settings>=2.9.1",
     "uvicorn>=0.34.1",
     "uvloop>=0.21.0",
 ]
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-default = true
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "ruff>=0.11.7",
 ]
 
 [tool.ruff]
-line-length = 150  # 设置最大行长度
-select = ["E", "F", "W", "I"]  # 启用的规则（E: pycodestyle, F: pyflakes, W: pycodestyle warnings, I: isort）
-ignore = ["E501"]  # 忽略特定规则（如行长度警告）
+line-length = 100
+lint.select = ["E", "F", "W", "I", "RUF"]
+lint.ignore = ["E501"] 
 
 [tool.ruff.format]
-quote-style = "double"  # 使用双引号
-indent-style = "space"  # 使用空格缩进
+quote-style = "double"
+indent-style = "space"

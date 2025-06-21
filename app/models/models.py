@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel
 
@@ -6,9 +6,10 @@ from pydantic import BaseModel
 class ContentItem(BaseModel):
     """Content item model"""
 
-    type: str
+    type: Literal["text", "image_url", "file", "input_audio"]
     text: Optional[str] = None
     image_url: Optional[Dict[str, str]] = None
+    file: Optional[Dict[str, str]] = None
 
 
 class Message(BaseModel):

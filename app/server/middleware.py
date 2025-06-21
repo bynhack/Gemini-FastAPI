@@ -1,17 +1,32 @@
+import tempfile
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from loguru import logger
 
 from ..utils import g_config
 
 
 def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc!s}", exc_info=True)
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": {"message": exc.detail}},
+        )
+
     return JSONResponse(
-        status_code=500, content={"error": {"message": str(exc), "type": "internal_server_error"}}
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": {"message": str(exc)}}
     )
+
+
+def get_temp_dir():
+    temp_dir = tempfile.TemporaryDirectory()
+    try:
+        yield Path(temp_dir.name)
+    finally:
+        temp_dir.cleanup()
 
 
 def verify_api_key(

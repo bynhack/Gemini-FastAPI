@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from gemini_webapi.constants import Model
 from loguru import logger
@@ -12,12 +12,9 @@ from loguru import logger
 from ..models import ChatCompletionRequest, ModelData, ModelListResponse
 from ..services.client import SingletonGeminiClient
 from ..utils.utils import (
-    cleanup_temp_files,
     estimate_tokens,
-    format_response_text,
-    prepare_conversation,
 )
-from .middleware import verify_api_key
+from .middleware import get_temp_dir, verify_api_key
 
 router = APIRouter()
 
@@ -45,61 +42,56 @@ async def list_models(api_key: str = Depends(verify_api_key)):
 
 @router.post("/v1/chat/completions")
 async def create_chat_completion(
-    request: ChatCompletionRequest, api_key: str = Depends(verify_api_key)
+    request: ChatCompletionRequest,
+    api_key: str = Depends(verify_api_key),
+    tmp_dir: Path = Depends(get_temp_dir),
 ):
     client = SingletonGeminiClient()
     model = Model.from_name(request.model)
 
-    # 转换消息为对话格式
-    conversation, temp_files = prepare_conversation(request.messages)
-    logger.debug(f"Prepared conversation length: {len(conversation)}")
-    logger.debug(f"Number of temp files: {len(temp_files)}")
-
+    # Preprocess the messages
     try:
-        # 生成响应
-        logger.info("Sending request to Gemini...")
-        if temp_files:
-            # 包含文件的请求
-            response = await client.generate_content(
-                conversation, files=[Path(f) for f in temp_files], model=model
-            )
-        else:
-            # 纯文本请求
-            response = await client.generate_content(conversation, model=model)
+        conversation, files = await client.prepare(request.messages, tmp_dir)
+        conversation = "\n".join(conversation)
+        logger.debug(f"Conversation length: {len(conversation)}, files count: {len(files)}")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception(f"Error in preparing conversation: {e}")
+        raise
 
-        # 格式化响应文本
-        reply_text = format_response_text(response)
+    # Generate response
+    try:
+        response = await client.generate_content(conversation, files=files, model=model)
+    except Exception as e:
+        logger.exception(f"Error generating content from Gemini API: {e}")
+        raise
 
-        if not reply_text or reply_text.strip() == "":
-            logger.warning("Empty response received from Gemini")
-            reply_text = "服务器返回了空响应。请检查 Gemini API 凭据是否有效。"
+    # Post process
+    response_text = client.format_response(response)
+    if not response_text or response_text.strip() == "":
+        logger.warning("Empty response received from Gemini")
+        response_text = "No response generated."
 
-        # 生成响应ID和时间戳
-        completion_id = f"chatcmpl-{uuid.uuid4()}"
-        created_time = int(time.time())
+    completion_id = f"chatcmpl-{uuid.uuid4()}"
+    timestamp = int(time.time())
 
-        # 检查是否需要流式响应
-        if request.stream:
-            return _create_streaming_response(
-                reply_text, completion_id, created_time, request.model
-            )
-        else:
-            return _create_standard_response(
-                reply_text, completion_id, created_time, request.model, conversation
-            )
-
-    finally:
-        # 清理临时文件
-        cleanup_temp_files(temp_files)
+    # Return with streaming or standard response
+    if request.stream:
+        return _create_streaming_response(response_text, completion_id, timestamp, request.model)
+    else:
+        return _create_standard_response(
+            response_text, completion_id, timestamp, request.model, conversation
+        )
 
 
 def _create_streaming_response(
-    reply_text: str, completion_id: str, created_time: int, model: str
+    response_text: str, completion_id: str, created_time: int, model: str
 ) -> StreamingResponse:
-    """创建流式响应"""
+    """Create streaming response"""
 
     async def generate_stream():
-        # 发送开始事件
+        # Send start event
         data = {
             "id": completion_id,
             "object": "chat.completion.chunk",
@@ -109,8 +101,8 @@ def _create_streaming_response(
         }
         yield f"data: {json.dumps(data)}\n\n"
 
-        # 流式输出文本
-        for char in reply_text:
+        # Stream output text
+        for char in response_text:
             data = {
                 "id": completion_id,
                 "object": "chat.completion.chunk",
@@ -120,7 +112,7 @@ def _create_streaming_response(
             }
             yield f"data: {json.dumps(data)}\n\n"
 
-        # 发送结束事件
+        # Send end event
         data = {
             "id": completion_id,
             "object": "chat.completion.chunk",
@@ -135,12 +127,12 @@ def _create_streaming_response(
 
 
 def _create_standard_response(
-    reply_text: str, completion_id: str, created_time: int, model: str, conversation: str
+    response_text: str, completion_id: str, created_time: int, model: str, conversation: str
 ) -> dict:
-    """创建标准响应"""
-    # 计算token使用量
+    """Create standard response"""
+    # Calculate token usage
     prompt_tokens = estimate_tokens(conversation)
-    completion_tokens = estimate_tokens(reply_text)
+    completion_tokens = estimate_tokens(response_text)
     total_tokens = prompt_tokens + completion_tokens
 
     result = {
@@ -151,7 +143,7 @@ def _create_standard_response(
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": reply_text},
+                "message": {"role": "assistant", "content": response_text},
                 "finish_reason": "stop",
             }
         ],

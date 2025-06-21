@@ -12,9 +12,11 @@ cors:
   allow_headers: ["*"]
 
 gemini:
-  secure_1psid: "YOUR_SECURE_1PSID_HERE"  # 必填: 请在此处填入您的 Gemini API Secure 1PSID
-  secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"  # 必填: 请在此处填入您的 Gemini API Secure 1PSIDTS
-  timeout: 300
+  secure_1psid: "YOUR_SECURE_1PSID_HERE"
+  secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"
+  timeout: 60
+  auto_refresh: true
+  verbose: false
 
 logging:
   level: "DEBUG"

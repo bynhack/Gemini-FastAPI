@@ -4,13 +4,13 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from gemini_webapi.constants import Model
 from loguru import logger
 
 from ..models import ChatCompletionRequest, ModelData, ModelListResponse
-from ..services.client import SingletonGeminiClient, map_model_name
+from ..services.client import SingletonGeminiClient
 from ..utils.utils import (
     cleanup_temp_files,
     estimate_tokens,
@@ -19,84 +19,78 @@ from ..utils.utils import (
 )
 from .middleware import verify_api_key
 
-# 创建路由器
 router = APIRouter()
 
 
 @router.get("/v1/models", response_model=ModelListResponse)
 async def list_models(api_key: str = Depends(verify_api_key)):
-    """获取可用模型列表"""
     now = int(datetime.now(tz=timezone.utc).timestamp())
-    data = [
-        ModelData(
-            id=m.model_name if hasattr(m, "model_name") else str(m),
-            created=now,
-            owned_by="google-gemini-web",
+
+    models = []
+    for model in Model:
+        m_name = model.model_name
+        if not m_name or m_name == "unspecified":
+            continue
+
+        models.append(
+            ModelData(
+                id=m_name,
+                created=now,
+                owned_by="gemini-web",
+            )
         )
-        for m in Model
-    ]
-    logger.debug(f"Available models: {[model.id for model in data]}")
-    return ModelListResponse(data=data)
+
+    return ModelListResponse(data=models)
 
 
 @router.post("/v1/chat/completions")
 async def create_chat_completion(
     request: ChatCompletionRequest, api_key: str = Depends(verify_api_key)
 ):
-    """创建聊天完成"""
+    client = SingletonGeminiClient()
+    model = Model.from_name(request.model)
+
+    # 转换消息为对话格式
+    conversation, temp_files = prepare_conversation(request.messages)
+    logger.debug(f"Prepared conversation length: {len(conversation)}")
+    logger.debug(f"Number of temp files: {len(temp_files)}")
+
     try:
-        client = SingletonGeminiClient()
-        await client.init()
+        # 生成响应
+        logger.info("Sending request to Gemini...")
+        if temp_files:
+            # 包含文件的请求
+            response = await client.generate_content(
+                conversation, files=[Path(f) for f in temp_files], model=model
+            )
+        else:
+            # 纯文本请求
+            response = await client.generate_content(conversation, model=model)
 
-        # 转换消息为对话格式
-        conversation, temp_files = prepare_conversation(request.messages)
-        logger.debug(f"Prepared conversation length: {len(conversation)}")
-        logger.debug(f"Number of temp files: {len(temp_files)}")
+        # 格式化响应文本
+        reply_text = format_response_text(response)
 
-        # 获取适当的模型
-        model = map_model_name(request.model)
-        logger.info(f"Using model: {model}")
+        if not reply_text or reply_text.strip() == "":
+            logger.warning("Empty response received from Gemini")
+            reply_text = "服务器返回了空响应。请检查 Gemini API 凭据是否有效。"
 
-        try:
-            # 生成响应
-            logger.info("Sending request to Gemini...")
-            if temp_files:
-                # 包含文件的请求
-                response = await client.generate_content(
-                    conversation, files=[Path(f) for f in temp_files], model=model
-                )
-            else:
-                # 纯文本请求
-                response = await client.generate_content(conversation, model=model)
+        # 生成响应ID和时间戳
+        completion_id = f"chatcmpl-{uuid.uuid4()}"
+        created_time = int(time.time())
 
-            # 格式化响应文本
-            reply_text = format_response_text(response)
+        # 检查是否需要流式响应
+        if request.stream:
+            return _create_streaming_response(
+                reply_text, completion_id, created_time, request.model
+            )
+        else:
+            return _create_standard_response(
+                reply_text, completion_id, created_time, request.model, conversation
+            )
 
-            if not reply_text or reply_text.strip() == "":
-                logger.warning("Empty response received from Gemini")
-                reply_text = "服务器返回了空响应。请检查 Gemini API 凭据是否有效。"
-
-            # 生成响应ID和时间戳
-            completion_id = f"chatcmpl-{uuid.uuid4()}"
-            created_time = int(time.time())
-
-            # 检查是否需要流式响应
-            if request.stream:
-                return _create_streaming_response(
-                    reply_text, completion_id, created_time, request.model
-                )
-            else:
-                return _create_standard_response(
-                    reply_text, completion_id, created_time, request.model, conversation
-                )
-
-        finally:
-            # 清理临时文件
-            cleanup_temp_files(temp_files)
-
-    except Exception as e:
-        logger.error(f"Error generating completion: {e!s}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error generating completion: {e!s}")
+    finally:
+        # 清理临时文件
+        cleanup_temp_files(temp_files)
 
 
 def _create_streaming_response(

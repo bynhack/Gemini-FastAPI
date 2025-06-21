@@ -1,12 +1,10 @@
-"""Pydantic 数据模型定义"""
-
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
 
 class ContentItem(BaseModel):
-    """内容项模型"""
+    """Content item model"""
 
     type: str
     text: Optional[str] = None
@@ -14,7 +12,7 @@ class ContentItem(BaseModel):
 
 
 class Message(BaseModel):
-    """消息模型"""
+    """Message model"""
 
     role: str
     content: Union[str, List[ContentItem]]
@@ -22,7 +20,7 @@ class Message(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    """聊天完成请求模型"""
+    """Chat completion request model"""
 
     model: str
     messages: List[Message]
@@ -37,7 +35,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 class Choice(BaseModel):
-    """选择模型"""
+    """Choice model"""
 
     index: int
     message: Message
@@ -45,7 +43,7 @@ class Choice(BaseModel):
 
 
 class Usage(BaseModel):
-    """使用统计模型"""
+    """Usage statistics model"""
 
     prompt_tokens: int
     completion_tokens: int
@@ -53,7 +51,7 @@ class Usage(BaseModel):
 
 
 class ChatCompletionResponse(BaseModel):
-    """聊天完成响应模型"""
+    """Chat completion response model"""
 
     id: str
     object: str = "chat.completion"
@@ -64,7 +62,7 @@ class ChatCompletionResponse(BaseModel):
 
 
 class ModelData(BaseModel):
-    """模型数据模型"""
+    """Model data model"""
 
     id: str
     object: str = "model"
@@ -73,13 +71,13 @@ class ModelData(BaseModel):
 
 
 class ModelListResponse(BaseModel):
-    """模型列表模型"""
+    """Model list model"""
 
     object: str = "list"
     data: List[ModelData]
 
 
 class ErrorResponse(BaseModel):
-    """错误响应模型"""
+    """Error response model"""
 
     error: Dict[str, str]

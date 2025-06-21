@@ -17,6 +17,9 @@ def global_exception_handler(request: Request, exc: Exception):
 def verify_api_key(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ):
+    if not g_config.server.api_key:
+        return ""
+
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing token")
 

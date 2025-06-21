@@ -10,7 +10,7 @@ if __name__ == "__main__":
     setup_logging(level=g_config.logging.level)
 
     uvicorn.run(
-        "main:app",
+        app,
         host=g_config.server.host,
         port=g_config.server.port,
         log_config=None,

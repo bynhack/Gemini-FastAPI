@@ -6,7 +6,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict, YamlConfigSettingsSource
 
-CONFIG_PATH = "config.yaml"
+CONFIG_PATH = "config/config.yaml"
 
 
 class ServerConfig(BaseModel):
@@ -25,7 +25,9 @@ class GeminiConfig(BaseModel):
 
     secure_1psid: str = Field(..., description="Gemini API Secure 1PSID")
     secure_1psidts: str = Field(..., description="Gemini API Secure 1PSIDTS")
-    timeout: int = Field(default=300, ge=1, description="Init timeout")
+    timeout: int = Field(default=60, ge=1, description="Init timeout")
+    auto_refresh: bool = Field(True, description="Enable auto-refresh for Gemini API credentials")
+    verbose: bool = Field(False, description="Enable verbose logging for Gemini API requests")
 
 
 class CORSConfig(BaseModel):
@@ -77,7 +79,7 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="CONFIG_",
         env_nested_delimiter="__",
-        yaml_file=os.getenv("CONFIG_FILE_PATH", CONFIG_PATH),
+        yaml_file=os.getenv("CONFIG_PATH", CONFIG_PATH),
     )
 
     @classmethod

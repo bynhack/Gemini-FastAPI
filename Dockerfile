@@ -4,10 +4,11 @@ WORKDIR /app
 
 # Install dependencies
 COPY pyproject.toml .
-RUN uv sync
+RUN uv sync --no-cache
 
-# Copy application code
-COPY main.py .
+COPY app/ app/
+COPY config/ config/
+COPY run.py .
 
 # Command to run the application
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "python", "run.py"]

@@ -1,6 +1,6 @@
 # Gemini-FastAPI
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -19,7 +19,7 @@ For Docker deployment, see the [Docker Deployment](#docker-deployment) section b
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12
 - Google account with Gemini access
 - `secure_1psid` and `secure_1psidts` cookies from Gemini web interface
 
@@ -79,9 +79,6 @@ docker run -p 8000:8000 \
   ghcr.io/nativu5/gemini-fastapi
 ```
 
-> [!IMPORTANT]
-> Make sure to mount the `/app/data` volume to persist conversation data between container restarts.
-
 ### Run with Docker Compose
 
 Create a `docker-compose.yml` file:
@@ -95,13 +92,14 @@ services:
     volumes:
       - ./config:/app/config
       - ./data:/app/data
+      - ./cache:/app/.venv/lib/python3.12/site-packages/gemini_webapi/utils/temp
     environment:
       - CONFIG_SERVER__HOST=0.0.0.0
       - CONFIG_SERVER__PORT=8000
       - CONFIG_SERVER__API_KEY=${API_KEY}
       - CONFIG_GEMINI__SECURE_1PSID=${SECURE_1PSID}
       - CONFIG_GEMINI__SECURE_1PSIDTS=${SECURE_1PSIDTS}
-    restart: unless-stopped
+    restart: on-failure:3 # Avoid retrying too many times
 ```
 
 Then run:
@@ -109,6 +107,10 @@ Then run:
 ```bash
 docker compose up -d
 ```
+
+> [!IMPORTANT]
+> Make sure to mount the `/app/data` volume to persist conversation data between container restarts.
+> It's also recommended to mount the `gemini_webapi/utils/temp` directory to save refreshed cookies.
 
 ## Configuration
 

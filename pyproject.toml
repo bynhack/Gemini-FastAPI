@@ -1,9 +1,9 @@
 [project]
 name = "gemini-fastapi"
 version = "1.0.0"
-description = "Fast API Server built on Gemini Web"
+description = "FastAPI Server built on Gemini Web API"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.12"
 dependencies = [
     "fastapi>=0.115.12",
     "gemini-webapi>=1.14.0",

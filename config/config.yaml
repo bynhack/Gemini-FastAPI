@@ -1,27 +1,28 @@
-# GeminiOrbiter Configuration File
+# Gemini FastAPI Configuration File
 
 server:
-  host: "0.0.0.0"
-  port: 8000
-  api_key: null
+  host: "0.0.0.0"          # Server bind address
+  port: 8000               # Server port
+  api_key: null            # API key for authentication (null for no auth)
 
 cors:
+  enabled: true            # Enable CORS
   allow_origins: ["*"]
   allow_credentials: true
   allow_methods: ["*"]
   allow_headers: ["*"]
 
-storage:
-  path: "data/lmdb"
-  max_size: 134217728 # 128 MB
-
 gemini:
-  secure_1psid: "YOUR_SECURE_1PSID_HERE"
-  secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"
-  timeout: 60
-  auto_refresh: true
-  refresh_interval: 540
-  verbose: false
+  secure_1psid: "YOUR_SECURE_1PSID_HERE"       # Required: Gemini session cookie
+  secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"   # Required: Gemini timestamp cookie
+  timeout: 60              # Init timeout in seconds
+  auto_refresh: true       # Auto-refresh session cookies
+  refresh_interval: 540    # Refresh interval in seconds
+  verbose: false           # Enable verbose logging for Gemini requests
+
+storage:
+  path: "data/lmdb"        # Database storage path
+  max_size: 134217728      # Maximum database size (128 MB)
 
 logging:
-  level: "DEBUG"
+  level: "INFO"           # Log level: DEBUG, INFO, WARNING, ERROR

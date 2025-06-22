@@ -36,6 +36,7 @@ class GeminiConfig(BaseModel):
 class CORSConfig(BaseModel):
     """CORS configuration"""
 
+    enabled: bool = Field(default=True, description="Enable CORS support")
     allow_origins: list[str] = Field(
         default=["*"], description="List of allowed origins for CORS requests"
     )

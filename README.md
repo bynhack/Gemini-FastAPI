@@ -1,113 +1,172 @@
-# Gemi2Api-Server
-[HanaokaYuzu / Gemini-API](https://github.com/HanaokaYuzu/Gemini-API) 的服务端简单实现
+# Gemini-FastAPI
 
-[![pE79pPf.png](https://s21.ax1x.com/2025/04/28/pE79pPf.png)](https://imgse.com/i/pE79pPf)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 快捷部署
+An OpenAI-compatible API server powered by [HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API).
 
-### Render
+## Features
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/zhiyu1998/Gemi2Api-Server)
+- 🚀 **OpenAI API Compatibility**: Drop-in replacement for OpenAI API endpoints
+- 💾 **Conversation Persistence**: LMDB-based storage for multi-turn conversations
+- 🖼️ **Multi-modal Support**: Handle text, images, and file uploads seamlessly
+- 🔧 **Flexible Configuration**: YAML-based config with environment variable overrides
+- 🐳 **Docker Ready**: Containerized deployment with volume persistence
 
-### HuggingFace（由佬友@qqrr部署）
+## Quick Start
 
-[![Deploy to HuggingFace](https://img.shields.io/badge/%E7%82%B9%E5%87%BB%E9%83%A8%E7%BD%B2-%F0%9F%A4%97-fff)](https://huggingface.co/spaces/ykl45/gmn2a)
+### Prerequisites
 
-## 直接运行
+- Python 3.11+
+- Google account with Gemini access
+- `secure_1psid` and `secure_1psidts` cookies from Gemini web interface
 
-0. 填入 `SECURE_1PSID` 和 `SECURE_1PSIDTS`（登录 Gemini 在浏览器开发工具中查找 Cookie），有必要的话可以填写 `API_KEY`
-```properties
-SECURE_1PSID = "COOKIE VALUE HERE"
-SECURE_1PSIDTS = "COOKIE VALUE HERE"
-API_KEY= "API_KEY VALUE HERE"
-```
-1. `uv` 安装一下依赖
-> uv init
-> 
-> uv add fastapi uvicorn gemini-webapi
+### Installation
 
-> [!NOTE]  
-> 如果存在`pyproject.toml` 那么就使用下面的命令：  
-> uv sync
-
-或者 `pip` 也可以
-
-> pip install fastapi uvicorn gemini-webapi
-
-2. 激活一下环境
-> source venv/bin/activate
-
-3. 启动
-> uvicorn main:app --reload --host 127.0.0.1 --port 8000
-
-> [!WARNING] 
-> tips: 如果不填写 API_KEY ，那么就直接使用
-
-## 使用Docker运行（推荐）
-
-### 快速开始
-
-1. 克隆本项目
-   ```bash
-   git clone https://github.com/zhiyu1998/Gemi2Api-Server.git
-   ```
-
-2. 创建 `.env` 文件并填入你的 Gemini Cookie 凭据:
-   ```bash
-   cp .env.example .env
-   # 用编辑器打开 .env 文件，填入你的 Cookie 值
-   ```
-
-3. 启动服务:
-   ```bash
-   docker-compose up -d
-   ```
-
-4. 服务将在 http://0.0.0.0:8000 上运行
-
-### 其他 Docker 命令
+#### Using uv (Recommended)
 
 ```bash
-# 查看日志
-docker-compose logs
-
-# 重启服务
-docker-compose restart
-
-# 停止服务
-docker-compose down
-
-# 重新构建并启动
-docker-compose up -d --build
+git clone https://github.com/Nativu5/Gemini-FastAPI.git
+cd Gemini-FastAPI
+uv sync
 ```
 
-## API端点
+#### Using pip
 
-- `GET /`: 服务状态检查
-- `GET /v1/models`: 获取可用模型列表
-- `POST /v1/chat/completions`: 与模型聊天 (类似OpenAI接口)
+```bash
+git clone https://github.com/Nativu5/Gemini-FastAPI.git
+cd Gemini-FastAPI
+pip install -e .
+```
 
-## 常见问题
+### Configuration
 
-### 服务器报 500 问题解决方案
+Edit `config/config.yaml` and set your Gemini credentials:
+```yaml
+gemini:
+  secure_1psid: "YOUR_SECURE_1PSID_HERE"
+  secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"
+```
 
-500 的问题一般是 IP 不太行 或者 请求太频繁（后者等待一段时间或者重新新建一个隐身标签登录一下重新给 Secure_1PSID 和 Secure_1PSIDTS 即可），见 issue：
-- [__Secure-1PSIDTS · Issue #6 · HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/issues/6)
-- [Failed to initialize client. SECURE_1PSIDTS could get expired frequently · Issue #72 · HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/issues/72)
+> [!NOTE]
+> For details, refer to the Configuration section below.
 
-解决步骤：
-1. 使用隐身标签访问 [Google Gemini](https://gemini.google.com/) 并登录
-2. 打开浏览器开发工具 (F12)
-3. 切换到 "Application" 或 "应用程序" 标签
-4. 在左侧找到 "Cookies" > "gemini.google.com"
-5. 复制 `__Secure-1PSID` 和 `__Secure-1PSIDTS` 的值
-6. 更新 `.env` 文件
-7. 重新构建并启动: `docker-compose up -d --build`
+### Running the Server
 
-## 贡献
+```bash
+# Using uv
+uv run python run.py
 
-同时感谢以下开发者对 `Gemi2Api-Server` 作出的贡献：
+# Using Python directly
+python run.py
+```
 
-<a href="https://github.com/zhiyu1998/Gemi2Api-Server/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=zhiyu1998/Gemi2Api-Server&max=1000" />
-</a>
+The server will start on `http://localhost:8000` by default.
+
+## Docker Deployment
+
+### Build the Image
+
+```bash
+docker build -t gemini-fastapi .
+```
+
+### Run with Options
+
+```bash
+docker run -p 8000:8000 \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/data:/app/data \
+  -e CONFIG_SERVER__API_KEY="your-api-key-here" \
+  -e CONFIG_GEMINI__SECURE_1PSID="your-secure-1psid" \
+  -e CONFIG_GEMINI__SECURE_1PSIDTS="your-secure-1psidts" \
+  gemini-fastapi
+```
+
+> [!TIP]
+> It is recommended to use Docker volumes to persist conversation data between container restarts.
+
+### Run with Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  gemini-fastapi:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    environment:
+      - CONFIG_SERVER__HOST=0.0.0.0
+      - CONFIG_SERVER__PORT=8000
+      - CONFIG_SERVER__API_KEY=${API_KEY}
+      - CONFIG_GEMINI__SECURE_1PSID=${SECURE_1PSID}
+      - CONFIG_GEMINI__SECURE_1PSIDTS=${SECURE_1PSIDTS}
+    restart: unless-stopped
+```
+
+Then run:
+
+```bash
+docker-compose up -d
+```
+
+> [!IMPORTANT]
+> Make sure to mount the `/app/data` volume to persist conversation data between container restarts.
+
+## Configuration
+
+The server uses YAML configuration files located in the `config/` directory:
+
+- `config.yaml`: Default configuration
+
+For details on each configuration option, refer to the comments in `config/config.yaml` file.
+
+### Environment Variable Overrides
+
+You can override any configuration option using environment variables with the `CONFIG_` prefix. Use double underscores (`__`) to represent nested keys, for example:
+
+```bash
+# Override server settings
+export CONFIG_SERVER__API_KEY="your-secure-api-key"
+
+# Override Gemini credentials
+export CONFIG_GEMINI__SECURE_1PSID="your-secure-1psid"
+export CONFIG_GEMINI__SECURE_1PSIDTS="your-secure-1psidts"
+
+# Override conversation storage size limit
+export CONFIG_STORAGE__MAX_SIZE=268435456  # 256 MB
+```
+
+> [!TIP]
+> Environment variable overrides are particularly useful for Docker deployments and production environments where you want to keep sensitive credentials separate from configuration files. 
+
+### Gemini Credentials
+
+> [!WARNING]
+> Keep these credentials secure and never commit them to version control. These cookies provide access to your Google account.
+
+To use Gemini-FastAPI, you need to extract your Gemini session cookies:
+
+1. Open [Gemini](https://gemini.google.com/) in a private/incognito browser window and sign in
+2. Open Developer Tools (F12)
+3. Navigate to **Application** → **Storage** → **Cookies**
+4. Find and copy the values for:
+   - `__Secure-1PSID`
+   - `__Secure-1PSIDTS`
+
+> [!TIP]
+> For detailed instructions, refer to the [HanaokaYuzu/Gemini-API authentication guide](https://github.com/HanaokaYuzu/Gemini-API?tab=readme-ov-file#authentication).
+
+## Acknowledgments
+
+- [HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API) - The underlying Gemini web API client
+- [zhiyu1998/Gemi2Api-Server](https://github.com/zhiyu1998/Gemi2Api-Server) - Inspiration and reference for model output handling
+
+## Disclaimer
+
+This project is not affiliated with Google or OpenAI and is intended solely for educational and research purposes. It uses reverse-engineered APIs and may not comply with Google's Terms of Service. Use at your own risk.

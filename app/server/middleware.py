@@ -50,11 +50,12 @@ def add_exception_handler(app: FastAPI):
 
 
 def add_cors_middleware(app: FastAPI):
-    cors = g_config.cors
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors.allow_origins,
-        allow_credentials=cors.allow_credentials,
-        allow_methods=cors.allow_methods,
-        allow_headers=cors.allow_headers,
-    )
+    if g_config.cors.enabled:
+        cors = g_config.cors
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors.allow_origins,
+            allow_credentials=cors.allow_credentials,
+            allow_methods=cors.allow_methods,
+            allow_headers=cors.allow_headers,
+        )

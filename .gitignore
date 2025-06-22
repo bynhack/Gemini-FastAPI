@@ -11,3 +11,4 @@ uv.lock
 
 .env
 config.debug.yaml
+data/

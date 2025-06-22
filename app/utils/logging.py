@@ -3,7 +3,6 @@ import logging
 import sys
 from typing import Literal
 
-from gemini_webapi.utils.logger import set_log_level
 from loguru import logger
 
 
@@ -22,10 +21,7 @@ def setup_logging(
         backtrace: Whether to enable backtrace information
         colorize: Whether to enable colors
     """
-    # Set gemini_webapi log level to avoid conflicts
-    set_log_level(level)
-
-    # Remove all existing loguru handlers
+    # Reset all logger handlers
     logger.remove()
 
     # Add unified handler for all logs
@@ -69,4 +65,4 @@ def _setup_logging_intercept() -> None:
             logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
     # Remove all existing handlers and add our interceptor
-    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+    logging.basicConfig(handlers=[InterceptHandler()], level="INFO", force=True)

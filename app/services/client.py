@@ -5,63 +5,92 @@ from gemini_webapi import GeminiClient, ModelOutput
 
 from ..models import Message
 from ..utils import g_config
+from ..utils.helper import add_tag, save_file_to_tempfile, save_url_to_tempfile
 from ..utils.singleton import Singleton
-from ..utils.utils import add_tag, save_file_to_tempfile, save_url_to_tempfile
 
 
 class SingletonGeminiClient(GeminiClient, metaclass=Singleton):
     def __init__(self, **kwargs):
-        # TODO: Add proxy support if needed
-        super().__init__(
-            secure_1psid=g_config.gemini.secure_1psid,
-            secure_1psidts=g_config.gemini.secure_1psidts,
-            **kwargs,
-        )
+        kwargs.setdefault("secure_1psid", g_config.gemini.secure_1psid)
+        kwargs.setdefault("secure_1psidts", g_config.gemini.secure_1psidts)
 
-    async def init(self):
-        await super().init(
-            timeout=g_config.gemini.timeout,
-            auto_refresh=g_config.gemini.auto_refresh,
-            verbose=g_config.gemini.verbose,
-        )
+        super().__init__(**kwargs)
 
-    async def prepare(self, messages: list[Message], tempdir: Path | None = None):
+    async def init(self, **kwargs):
+        # Inject default configuration values
+        kwargs.setdefault("timeout", g_config.gemini.timeout)
+        kwargs.setdefault("auto_refresh", g_config.gemini.auto_refresh)
+        kwargs.setdefault("verbose", g_config.gemini.verbose)
+        kwargs.setdefault("refresh_interval", g_config.gemini.refresh_interval)
+
+        await super().init(**kwargs)
+
+    @staticmethod
+    async def process_message(
+        message: Message, tempdir: Path | None = None, tagged: bool = True
+    ) -> tuple[str, list[Path | str]]:
+        """
+        Process a single message and return model input.
+        """
+        model_input = ""
+        files: list[Path | str] = []
+        if isinstance(message.content, str):
+            # Pure text content
+            model_input = message.content
+        else:
+            # Mixed content
+            # TODO: Use Pydantic to enforce the value checking
+            for item in message.content:
+                if item.type == "text":
+                    model_input = item.text or ""
+
+                elif item.type == "image_url":
+                    if not item.image_url:
+                        raise ValueError("Image URL cannot be empty")
+                    if url := item.image_url.get("url", None):
+                        files.append(await save_url_to_tempfile(url, tempdir))
+                    else:
+                        raise ValueError("Image URL must contain 'url' key")
+
+                elif item.type == "file":
+                    if not item.file:
+                        raise ValueError("File cannot be empty")
+                    if file_data := item.file.get("file_data", None):
+                        filename = item.file.get("filename", "")
+                        files.append(await save_file_to_tempfile(file_data, filename, tempdir))
+                    else:
+                        raise ValueError("File must contain 'file_data' key")
+
+        # Add role tag if needed
+        if model_input and tagged:
+            model_input = add_tag(message.role, model_input)
+
+        return model_input, files
+
+    @staticmethod
+    async def precess_conversation(messages: list[Message], tempdir: Path | None = None):
+        """
+        Process the entire conversation and return a formatted string and list of files.
+        The last message is assumed to be the assistant's response.
+        """
         conversation: list[str] = []
         files: list[Path | str] = []
 
         for msg in messages:
-            if isinstance(msg.content, str):
-                # Pure text content
-                conversation.append(add_tag(msg.role, msg.content))
-            else:
-                # Mixed content
-                for item in msg.content:
-                    if item.type == "text":
-                        conversation.append(add_tag(msg.role, item.text or ""))
-
-                    elif item.type == "image_url":
-                        # TODO: Use Pydantic to enforce the value checking
-                        if not item.image_url:
-                            raise ValueError("Image URL cannot be empty")
-                        if url := item.image_url.get("url", None):
-                            files.append(await save_url_to_tempfile(url, tempdir))
-                        else:
-                            raise ValueError("Image URL must contain 'url' key")
-
-                    elif item.type == "file":
-                        if not item.file:
-                            raise ValueError("File cannot be empty")
-                        if file_data := item.file.get("file_data", None):
-                            filename = item.file.get("filename", "")
-                            files.append(await save_file_to_tempfile(file_data, filename, tempdir))
-                        else:
-                            raise ValueError("File must contain 'file_data' key")
+            input_part, files_part = await SingletonGeminiClient.process_message(msg, tempdir)
+            conversation.append(input_part)
+            files.extend(files_part)
 
         # Left with the last message as the assistant's response
-        conversation.append(add_tag("assistant", "", open=True))
-        return conversation, files
+        conversation.append(add_tag("assistant", "", unclose=True))
 
-    def format_response(self, response: ModelOutput):
+        return "\n".join(conversation), files
+
+    @staticmethod
+    def extract_output(response: ModelOutput):
+        """
+        Extract and format the output text from the Gemini response.
+        """
         text = ""
 
         if response.thoughts:
@@ -76,14 +105,12 @@ class SingletonGeminiClient(GeminiClient, metaclass=Singleton):
         text = text.replace("&lt;", "<").replace("\\<", "<").replace("\\_", "_").replace("\\>", ">")
 
         def simplify_link_target(text_content: str) -> str:
-            """简化链接目标"""
             match_colon_num = re.match(r"([^:]+:\d+)", text_content)
             if match_colon_num:
                 return match_colon_num.group(1)
             return text_content
 
         def replacer(match: re.Match) -> str:
-            """链接替换器"""
             outer_open_paren = match.group(1)
             display_text = match.group(2)
 
@@ -95,10 +122,10 @@ class SingletonGeminiClient(GeminiClient, metaclass=Singleton):
             else:
                 return new_link_segment
 
-        # 修复Google搜索链接
+        # Replace Google search links with simplified markdown links
         pattern = r"(\()?\[`([^`]+?)`\]\((https://www.google.com/search\?q=)(.*?)(?<!\\)\)\)*(\))?"
         text = re.sub(pattern, replacer, text)
 
-        # 修复包装的markdown链接
+        # Fix inline code blocks
         pattern = r"`(\[[^\]]+\]\([^\)]+\))`"
         return re.sub(pattern, r"\1", text)

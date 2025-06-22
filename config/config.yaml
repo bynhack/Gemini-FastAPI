@@ -11,11 +11,16 @@ cors:
   allow_methods: ["*"]
   allow_headers: ["*"]
 
+storage:
+  path: "data/lmdb"
+  max_size: 134217728 # 128 MB
+
 gemini:
   secure_1psid: "YOUR_SECURE_1PSID_HERE"
   secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"
   timeout: 60
   auto_refresh: true
+  refresh_interval: 540
   verbose: false
 
 logging:

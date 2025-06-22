@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..utils import g_config
@@ -11,12 +11,12 @@ from ..utils import g_config
 
 def global_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
-        return JSONResponse(
+        return ORJSONResponse(
             status_code=exc.status_code,
             content={"error": {"message": exc.detail}},
         )
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": {"message": str(exc)}}
     )
 

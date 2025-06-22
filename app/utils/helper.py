@@ -6,13 +6,13 @@ import httpx
 from loguru import logger
 
 
-def add_tag(role: str, content: str, open: bool = False) -> str:
+def add_tag(role: str, content: str, unclose: bool = False) -> str:
     """Surround content with role tags"""
     if role not in ["user", "assistant", "system"]:
         logger.warning(f"Unknown role: {role}, returning content without tags")
         return content
 
-    return f"<|im_start|>{role}\n{content}" + ("\n<|im_end|>" if not open else "")
+    return f"<|im_start|>{role}\n{content}" + ("\n<|im_end|>" if not unclose else "")
 
 
 def estimate_tokens(text: str) -> int:

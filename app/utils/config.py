@@ -23,10 +23,13 @@ class ServerConfig(BaseModel):
 class GeminiConfig(BaseModel):
     """Gemini API configuration"""
 
-    secure_1psid: str = Field(..., description="Gemini API Secure 1PSID")
-    secure_1psidts: str = Field(..., description="Gemini API Secure 1PSIDTS")
+    secure_1psid: str = Field(..., description="Gemini Secure 1PSID")
+    secure_1psidts: str = Field(..., description="Gemini Secure 1PSIDTS")
     timeout: int = Field(default=60, ge=1, description="Init timeout")
-    auto_refresh: bool = Field(True, description="Enable auto-refresh for Gemini API credentials")
+    auto_refresh: bool = Field(True, description="Enable auto-refresh for Gemini cookies")
+    refresh_interval: int = Field(
+        default=540, ge=1, description="Interval in seconds to refresh Gemini cookies"
+    )
     verbose: bool = Field(False, description="Enable verbose logging for Gemini API requests")
 
 
@@ -42,6 +45,18 @@ class CORSConfig(BaseModel):
     )
     allow_headers: list[str] = Field(
         default=["*"], description="List of allowed headers for CORS requests"
+    )
+
+
+class StorageConfig(BaseModel):
+    path: str = Field(
+        default="data/msg.lmdb",
+        description="Path to the storage directory where data will be saved",
+    )
+    max_size: int = Field(
+        default=1024**2 * 128,  # 128 MB
+        ge=1,
+        description="Maximum size of the storage in bytes",
     )
 
 
@@ -69,6 +84,11 @@ class Config(BaseSettings):
 
     # Gemini API configuration
     gemini: GeminiConfig = Field(..., description="Gemini API configuration, must be set")
+
+    storage: StorageConfig = Field(
+        default=StorageConfig(),
+        description="Storage configuration, defines where and how data will be stored",
+    )
 
     # Logging configuration
     logging: LoggingConfig = Field(

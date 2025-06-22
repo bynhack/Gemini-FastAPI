@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ContentItem(BaseModel):
@@ -20,21 +21,6 @@ class Message(BaseModel):
     name: Optional[str] = None
 
 
-class ChatCompletionRequest(BaseModel):
-    """Chat completion request model"""
-
-    model: str
-    messages: List[Message]
-    temperature: Optional[float] = 0.7
-    top_p: Optional[float] = 1.0
-    n: Optional[int] = 1
-    stream: Optional[bool] = False
-    max_tokens: Optional[int] = None
-    presence_penalty: Optional[float] = 0
-    frequency_penalty: Optional[float] = 0
-    user: Optional[str] = None
-
-
 class Choice(BaseModel):
     """Choice model"""
 
@@ -51,6 +37,30 @@ class Usage(BaseModel):
     total_tokens: int
 
 
+class ModelData(BaseModel):
+    """Model data model"""
+
+    id: str
+    object: str = "model"
+    created: int
+    owned_by: str = "google"
+
+
+class ChatCompletionRequest(BaseModel):
+    """Chat completion request model"""
+
+    model: str
+    messages: List[Message]
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 1.0
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    max_tokens: Optional[int] = None
+    presence_penalty: Optional[float] = 0
+    frequency_penalty: Optional[float] = 0
+    user: Optional[str] = None
+
+
 class ChatCompletionResponse(BaseModel):
     """Chat completion response model"""
 
@@ -62,15 +72,6 @@ class ChatCompletionResponse(BaseModel):
     usage: Usage
 
 
-class ModelData(BaseModel):
-    """Model data model"""
-
-    id: str
-    object: str = "model"
-    created: int
-    owned_by: str = "google"
-
-
 class ModelListResponse(BaseModel):
     """Model list model"""
 
@@ -78,7 +79,21 @@ class ModelListResponse(BaseModel):
     data: List[ModelData]
 
 
-class ErrorResponse(BaseModel):
-    """Error response model"""
+class HealthCheckResponse(BaseModel):
+    """Health check response model"""
 
-    error: Dict[str, str]
+    ok: bool
+    storage: Optional[Dict[str, str]] = None
+    error: Optional[str] = None
+
+
+class ConversationInStore(BaseModel):
+    """Conversation model for storing in the database."""
+
+    created_at: Optional[datetime] = Field(default=None)
+    updated_at: Optional[datetime] = Field(default=None)
+
+    metadata: list[str | None] = Field(
+        ..., description="Metadata for Gemini API to locate the conversation"
+    )
+    messages: list[Message] = Field(..., description="Message contents in the conversation")

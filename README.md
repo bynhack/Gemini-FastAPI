@@ -10,11 +10,12 @@ An OpenAI-compatible API server powered by [HanaokaYuzu/Gemini-API](https://gith
 
 - 🚀 **OpenAI API Compatibility**: Drop-in replacement for OpenAI API endpoints
 - 💾 **Conversation Persistence**: LMDB-based storage for multi-turn conversations
-- 🖼️ **Multi-modal Support**: Handle text, images, and file uploads seamlessly
+- 🖼️ **Multi-modal Support**: Handle text, images, and file uploads
 - 🔧 **Flexible Configuration**: YAML-based config with environment variable overrides
-- 🐳 **Docker Ready**: Containerized deployment with volume persistence
 
 ## Quick Start
+
+For Docker deployment, see the [Docker Deployment](#docker-deployment) section below.
 
 ### Prerequisites
 
@@ -66,12 +67,6 @@ The server will start on `http://localhost:8000` by default.
 
 ## Docker Deployment
 
-### Build the Image
-
-```bash
-docker build -t gemini-fastapi .
-```
-
 ### Run with Options
 
 ```bash
@@ -81,7 +76,7 @@ docker run -p 8000:8000 \
   -e CONFIG_SERVER__API_KEY="your-api-key-here" \
   -e CONFIG_GEMINI__SECURE_1PSID="your-secure-1psid" \
   -e CONFIG_GEMINI__SECURE_1PSIDTS="your-secure-1psidts" \
-  gemini-fastapi
+  ghcr.io/nativu5/gemini-fastapi
 ```
 
 > [!IMPORTANT]
@@ -94,7 +89,7 @@ Create a `docker-compose.yml` file:
 ```yaml
 services:
   gemini-fastapi:
-    build: .
+    image: ghcr.io/nativu5/gemini-fastapi:latest
     ports:
       - "8000:8000"
     volumes:
@@ -112,16 +107,14 @@ services:
 Then run:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Configuration
 
-The server uses YAML configuration files located in the `config/` directory:
+The server reads a YAML configuration file located at `config/config.yaml`. 
 
-- `config.yaml`: Default configuration
-
-For details on each configuration option, refer to the comments in [`config/config.yaml`](https://github.com/Nativu5/Gemini-FastAPI/blob/main/config/config.yaml) file.
+For details on each configuration option, refer to the comments in the [`config/config.yaml`](https://github.com/Nativu5/Gemini-FastAPI/blob/main/config/config.yaml) file.
 
 ### Environment Variable Overrides
 

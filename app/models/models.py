@@ -93,6 +93,8 @@ class ConversationInStore(BaseModel):
     created_at: Optional[datetime] = Field(default=None)
     updated_at: Optional[datetime] = Field(default=None)
 
+    # NOTE: Gemini Web API do not support changing models once a conversation is created.
+    model: str = Field(..., description="Model used for the conversation")
     metadata: list[str | None] = Field(
         ..., description="Metadata for Gemini API to locate the conversation"
     )

@@ -21,10 +21,11 @@ def hash_message(message: Message) -> str:
     return hashlib.sha256(message_bytes).hexdigest()
 
 
-def hash_message_list(messages: List[Message]) -> str:
+def hash_conversation(model: str, messages: List[Message]) -> str:
     """Generate a hash for a list of messages."""
     # Create a combined hash from all individual message hashes
     combined_hash = hashlib.sha256()
+    combined_hash.update(model.encode("utf-8"))
     for message in messages:
         message_hash = hash_message(message)
         combined_hash.update(message_hash.encode("utf-8"))
@@ -114,7 +115,7 @@ class LMDBConversationStore(metaclass=Singleton):
             raise ValueError("Messages list cannot be empty")
 
         # Generate hash for the message list
-        message_hash = hash_message_list(conv.messages)
+        message_hash = hash_conversation(conv.model, conv.messages)
         storage_key = custom_key or message_hash
 
         # Prepare data for storage
@@ -170,11 +171,12 @@ class LMDBConversationStore(metaclass=Singleton):
             logger.error(f"Failed to retrieve messages for key {key}: {e}")
             return None
 
-    def find(self, messages: List[Message]) -> Optional[ConversationInStore]:
+    def find(self, model: str, messages: List[Message]) -> Optional[ConversationInStore]:
         """
         Search conversation data by message list.
 
         Args:
+            model: Model name of the conversations
             messages: List of messages to search for
 
         Returns:
@@ -183,7 +185,7 @@ class LMDBConversationStore(metaclass=Singleton):
         if not messages:
             return None
 
-        message_hash = hash_message_list(messages)
+        message_hash = hash_conversation(model, messages)
         key = f"{self.CUSTOM_KEY_BINDING_PREFIX}{message_hash}"
 
         try:
@@ -235,7 +237,7 @@ class LMDBConversationStore(metaclass=Singleton):
 
                 storage_data = orjson.loads(data)  # type: ignore
                 conv = ConversationInStore.model_validate(storage_data)
-                message_hash = hash_message_list(conv.messages)
+                message_hash = hash_conversation(conv.model, conv.messages)
 
                 # Delete main data
                 txn.delete(key.encode("utf-8"))

@@ -64,7 +64,7 @@ async def create_chat_completion(
     if _check_reusable(request.messages):
         try:
             # Exclude the last message from user
-            if old_conv := db.find(request.messages[:-1]):
+            if old_conv := db.find(model.model_name, request.messages[:-1]):
                 session = client.start_chat(metadata=old_conv.metadata, model=model)
         except Exception as e:
             session = None
@@ -103,6 +103,7 @@ async def create_chat_completion(
     try:
         last_message = Message(role="assistant", content=model_output)
         conv = ConversationInStore(
+            model=model.model_name,
             metadata=session.metadata,
             messages=[*request.messages, last_message],
         )

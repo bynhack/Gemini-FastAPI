@@ -157,14 +157,16 @@ def _create_streaming_response(
         }
         yield f"data: {orjson.dumps(data).decode('utf-8')}\n\n"
 
-        # Stream output text
-        for part in model_output.split():
+        # Stream output text in chunks for efficiency
+        chunk_size = 32
+        for i in range(0, len(model_output), chunk_size):
+            chunk = model_output[i : i + chunk_size]
             data = {
                 "id": completion_id,
                 "object": "chat.completion.chunk",
                 "created": created_time,
                 "model": model,
-                "choices": [{"index": 0, "delta": {"content": part}, "finish_reason": None}],
+                "choices": [{"index": 0, "delta": {"content": chunk}, "finish_reason": None}],
             }
             yield f"data: {orjson.dumps(data).decode('utf-8')}\n\n"
 

@@ -4,23 +4,27 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-An OpenAI-compatible API server powered by [HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API).
+[ English | [中文](README.zh.md) ]
+
+An OpenAI-compatible API server powered by  [HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API).
+
+**✅ Call Gemini's web-based models via API without an API Key, completely free!**
 
 ## Features
 
-- 🚀 **OpenAI API Compatibility**: Drop-in replacement for OpenAI API endpoints
-- 💾 **Conversation Persistence**: LMDB-based storage for multi-turn conversations
-- 🖼️ **Multi-modal Support**: Handle text, images, and file uploads
-- 🔧 **Flexible Configuration**: YAML-based config with environment variable overrides
+- **🔐 No Google API Key Required**: Use web cookies to freely access Gemini's models via API.
+- **💾 Conversation Persistence**: LMDB-based storage supporting multi-turn conversations.
+- **🖼️ Multi-modal Support**: Support for handling text, images, and file uploads.
+- **🔧 Flexible Configuration**: YAML-based configuration with environment variable overrides.
 
 ## Quick Start
 
-For Docker deployment, see the [Docker Deployment](#docker-deployment) section below.
+**For Docker deployment, see the [Docker Deployment](#docker-deployment) section below.**
 
 ### Prerequisites
 
 - Python 3.12
-- Google account with Gemini access
+- Google account with Gemini access on web
 - `secure_1psid` and `secure_1psidts` cookies from Gemini web interface
 
 ### Installation
@@ -157,7 +161,7 @@ To use Gemini-FastAPI, you need to extract your Gemini session cookies:
 ## Acknowledgments
 
 - [HanaokaYuzu/Gemini-API](https://github.com/HanaokaYuzu/Gemini-API) - The underlying Gemini web API client
-- [zhiyu1998/Gemi2Api-Server](https://github.com/zhiyu1998/Gemi2Api-Server) - Inspiration and reference for model output handling
+- [zhiyu1998/Gemi2Api-Server](https://github.com/zhiyu1998/Gemi2Api-Server) - This project originated from this repository. After extensive refactoring and engineering improvements, it has evolved into an independent project, featuring multi-turn conversation reuse among other enhancements. Special thanks for the inspiration and foundational work provided.
 
 ## Disclaimer
 

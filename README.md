@@ -50,7 +50,7 @@ gemini:
 ```
 
 > [!NOTE]
-> For details, refer to the Configuration section below.
+> For details, refer to the [Configuration](#configuration-1) section below.
 
 ### Running the Server
 
@@ -84,8 +84,8 @@ docker run -p 8000:8000 \
   gemini-fastapi
 ```
 
-> [!TIP]
-> It is recommended to use Docker volumes to persist conversation data between container restarts.
+> [!IMPORTANT]
+> Make sure to mount the `/app/data` volume to persist conversation data between container restarts.
 
 ### Run with Docker Compose
 
@@ -115,18 +115,18 @@ Then run:
 docker-compose up -d
 ```
 
-> [!IMPORTANT]
-> Make sure to mount the `/app/data` volume to persist conversation data between container restarts.
-
 ## Configuration
 
 The server uses YAML configuration files located in the `config/` directory:
 
 - `config.yaml`: Default configuration
 
-For details on each configuration option, refer to the comments in `config/config.yaml` file.
+For details on each configuration option, refer to the comments in [`config/config.yaml`](https://github.com/Nativu5/Gemini-FastAPI/blob/main/config/config.yaml) file.
 
 ### Environment Variable Overrides
+
+> [!TIP]
+> This feature is particularly useful for Docker deployments and production environments where you want to keep sensitive credentials separate from configuration files. 
 
 You can override any configuration option using environment variables with the `CONFIG_` prefix. Use double underscores (`__`) to represent nested keys, for example:
 
@@ -141,9 +141,6 @@ export CONFIG_GEMINI__SECURE_1PSIDTS="your-secure-1psidts"
 # Override conversation storage size limit
 export CONFIG_STORAGE__MAX_SIZE=268435456  # 256 MB
 ```
-
-> [!TIP]
-> Environment variable overrides are particularly useful for Docker deployments and production environments where you want to keep sensitive credentials separate from configuration files. 
 
 ### Gemini Credentials
 

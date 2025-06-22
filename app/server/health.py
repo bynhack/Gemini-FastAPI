@@ -7,7 +7,7 @@ from ..services import LMDBConversationStore, SingletonGeminiClient
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthCheckResponse)
 async def health_check():
     client = SingletonGeminiClient()
     db = LMDBConversationStore()

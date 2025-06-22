@@ -83,7 +83,7 @@ class HealthCheckResponse(BaseModel):
     """Health check response model"""
 
     ok: bool
-    storage: Optional[Dict[str, str]] = None
+    storage: Optional[Dict[str, str | int]] = None
     error: Optional[str] = None
 
 

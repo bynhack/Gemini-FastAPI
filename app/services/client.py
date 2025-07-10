@@ -12,7 +12,7 @@ from ..models import Message
 from ..utils import g_config
 from ..utils.helper import add_tag, save_file_to_tempfile, save_url_to_tempfile
 
-XML_WRAP_HINT = "\nFor any xml block, e.g. tool call, always wrap it with:\n```xml\n...\n```\n"
+XML_WRAP_HINT = "\nFor any xml block, e.g. tool call, always wrap it with: \n`````xml\n...\n`````\n"
 
 
 class GeminiClientWrapper(GeminiClient):

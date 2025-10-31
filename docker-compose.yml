@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  gemini-fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # 传递构建阶段代理与超时（可选）
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+        UV_HTTP_TIMEOUT: ${UV_HTTP_TIMEOUT:-120}
+    container_name: gemini-fastapi
+    ports:
+      - "8004:8000"
+    environment:
+      # 基础服务配置
+      - CONFIG_SERVER__HOST=0.0.0.0
+      - CONFIG_SERVER__PORT=8000
+      - CONFIG_SERVER__API_KEY=${API_KEY:-}
+
+      # 运行时代理（可选）
+      - http_proxy=${http_proxy:-}
+      - https_proxy=${https_proxy:-}
+      - no_proxy=${no_proxy:-}
+      - UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT:-120}
+
+      # Gemini 账号 cookie（至少提供一个账户）
+      - CONFIG_GEMINI__CLIENTS__0__ID=${GEMINI_CLIENT_ID:-client-a}
+      - CONFIG_GEMINI__CLIENTS__0__SECURE_1PSID=${SECURE_1PSID:-}
+      - CONFIG_GEMINI__CLIENTS__0__SECURE_1PSIDTS=${SECURE_1PSIDTS:-}
+
+      # 可选：日志级别/字符上限等
+      - CONFIG_LOGGING__LEVEL=${LOG_LEVEL:-INFO}
+      - CONFIG_GEMINI__MAX_CHARS_PER_REQUEST=${MAX_CHARS_PER_REQUEST:-1000000}
+
+    volumes:
+      # 会话数据持久化（LMDB）
+      - ./data:/app/data
+      - ./cache:/app/.venv/lib/python3.12/site-packages/gemini_webapi/utils/temp
+      # 可选：映射证书目录用于开启 HTTPS（同时设置 CONFIG_SERVER__HTTPS__ENABLED=true）
+      # - ./certs:/app/certs
+
+    restart: on-failure:3
+
+    # 可选：传入 .env 文件集中管理变量
+    env_file:
+      - .env
+
+

@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import orjson
-from fastapi import APIRouter, Depends, HTTPException, status
+import base64
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+import httpx
 from fastapi.responses import StreamingResponse
 from gemini_webapi.client import ChatSession
 from gemini_webapi.constants import Model
@@ -12,6 +14,9 @@ from loguru import logger
 from ..models import (
     ChatCompletionRequest,
     ConversationInStore,
+    ImagesGenerateRequest,
+    ImagesGenerateResponse,
+    ImageData,
     Message,
     ModelData,
     ModelListResponse,
@@ -116,6 +121,7 @@ async def create_chat_completion(
     # Format the response from API
     model_output = GeminiClientWrapper.extract_output(response, include_thoughts=True)
     stored_output = GeminiClientWrapper.extract_output(response, include_thoughts=False)
+    image_urls = GeminiClientWrapper.extract_images(response)
 
     # After formatting, persist the conversation to LMDB
     try:
@@ -146,8 +152,85 @@ async def create_chat_completion(
         )
     else:
         return _create_standard_response(
-            model_output, completion_id, timestamp, request.model, request.messages
+            model_output, completion_id, timestamp, request.model, request.messages, image_urls
         )
+
+
+@router.post("/v1/images/generations", response_model=ImagesGenerateResponse)
+async def create_image_generation(
+    request: ImagesGenerateRequest,
+    http_request: Request,
+    api_key: str = Depends(verify_api_key),
+):
+    pool = GeminiClientPool()
+    model = Model.from_name(request.model)
+
+    try:
+        client = pool.acquire()
+        session = client.start_chat(model=model)
+        response = await client.generate_content(request.prompt, chat=session, model=model)
+    except Exception as e:
+        logger.exception(f"Error generating image from Gemini API: {e}")
+        raise HTTPException(status_code=500, detail="Image generation failed")
+
+    # 获取图片对象列表
+    image_objects = GeminiClientWrapper.get_image_objects(response)
+    if request.n and request.n > 0:
+        image_objects = image_objects[: request.n]
+
+    created = int(datetime.now(tz=timezone.utc).timestamp())
+
+    # 保存图片到本地并返回 URL
+    images_dir = Path("data/images")
+    images_dir.mkdir(parents=True, exist_ok=True)
+
+    data: list[ImageData] = []
+    for i, image in enumerate(image_objects):
+        try:
+            # 生成唯一文件名
+            timestamp = int(datetime.now(tz=timezone.utc).timestamp())
+            filename = f"image_{timestamp}_{i}.png"
+            filepath = images_dir / filename
+
+            # 保存图片
+            await image.save(path=str(images_dir), filename=filename, verbose=True)
+
+            # 构建本地服务 URL
+            if http_request:
+                # 从请求对象获取基础 URL
+                scheme = http_request.url.scheme
+                host = http_request.url.hostname
+                port = http_request.url.port
+                if port:
+                    base_url = f"{scheme}://{host}:{port}"
+                else:
+                    base_url = f"{scheme}://{host}"
+            else:
+                # 回退到使用配置
+                scheme = "https" if g_config.server.https.enabled else "http"
+                host = g_config.server.host
+                port = g_config.server.port
+                if host == "0.0.0.0":
+                    host = "localhost"
+                base_url = f"{scheme}://{host}:{port}"
+            
+            local_url = f"{base_url}/static/images/{filename}"
+
+            if request.response_format == "b64_json":
+                # 读取保存的文件并转换为 base64
+                if filepath.exists():
+                    with open(filepath, "rb") as f:
+                        img_data = f.read()
+                        b64 = base64.b64encode(img_data).decode("utf-8")
+                        data.append(ImageData(b64_json=b64))
+            else:
+                data.append(ImageData(url=local_url))
+
+        except Exception as e:
+            logger.exception(f"Error saving image {i}: {e}")
+            continue
+
+    return ImagesGenerateResponse(created=created, data=data)
 
 
 def _text_from_message(message: Message) -> str:
@@ -311,12 +394,24 @@ def _create_standard_response(
     created_time: int,
     model: str,
     messages: list[Message],
+    image_urls: list[str] | None = None,
 ) -> dict:
     """Create standard response"""
     # Calculate token usage
     prompt_tokens = sum(estimate_tokens(_text_from_message(msg)) for msg in messages)
     completion_tokens = estimate_tokens(model_output)
     total_tokens = prompt_tokens + completion_tokens
+
+    # 组装消息内容：如果包含图片，则返回多模态数组（文本 + image_url 项）
+    if image_urls:
+        content: list[dict] = []
+        if model_output:
+            content.append({"type": "text", "text": model_output})
+        for url in image_urls:
+            content.append({"type": "image_url", "image_url": {"url": url}})
+        message_content = content
+    else:
+        message_content = model_output
 
     result = {
         "id": completion_id,
@@ -326,7 +421,7 @@ def _create_standard_response(
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": model_output},
+                "message": {"role": "assistant", "content": message_content},
                 "finish_reason": "stop",
             }
         ],

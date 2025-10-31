@@ -30,7 +30,7 @@ class GeminiClientWrapper(GeminiClient):
         kwargs.setdefault("auto_refresh", g_config.gemini.auto_refresh)
         kwargs.setdefault("verbose", g_config.gemini.verbose)
         kwargs.setdefault("refresh_interval", g_config.gemini.refresh_interval)
-
+        print(kwargs)
         await super().init(**kwargs)
 
     async def generate_content(
@@ -160,6 +160,8 @@ class GeminiClientWrapper(GeminiClient):
         else:
             text += str(response)
 
+        # 保留图片处理在专用方法中，不在此直接输出日志
+
         # Fix some escaped characters
         text = text.replace("&lt;", "<").replace("\\<", "<").replace("\\_", "_").replace("\\>", ">")
 
@@ -188,3 +190,30 @@ class GeminiClientWrapper(GeminiClient):
         # Fix inline code blocks
         pattern = r"`(\[[^\]]+\]\([^\)]+\))`"
         return re.sub(pattern, r"\1", text)
+
+    @staticmethod
+    def extract_images(response: ModelOutput) -> list[str]:
+        """从 ModelOutput 中提取图片 URL 列表。"""
+        urls: list[str] = []
+        try:
+            images = getattr(response, "images", None)
+            if images:
+                for image in images:
+                    url = getattr(image, "url", None)
+                    if isinstance(url, str) and url:
+                        urls.append(url)
+        except Exception:
+            pass
+        return urls
+
+    @staticmethod
+    def get_image_objects(response: ModelOutput) -> list:
+        """从 ModelOutput 中获取图片对象列表（用于保存）。"""
+        images = []
+        try:
+            image_list = getattr(response, "images", None)
+            if image_list:
+                images = list(image_list)
+        except Exception:
+            pass
+        return images

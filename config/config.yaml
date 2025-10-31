@@ -19,8 +19,8 @@ cors:
 gemini:
   clients:
     - id: "example-id-1"   # Arbitrary client ID
-      secure_1psid: "YOUR_SECURE_1PSID_HERE"
-      secure_1psidts: "YOUR_SECURE_1PSIDTS_HERE"
+      secure_1psid: "g.a0003Aj7djJUphsXgk1bibSXr5k-KOFkCPgJ45ZuuMx_kD38xYPMfbOX2khbYSK5AH5VTSa-EQACgYKAV8SARYSFQHGX2Mie8eaydCb7ulaUiab4yve3xoVAUF8yKq5-0ddyikuIZs4BADgH2i80076"
+      secure_1psidts: "sidts-CjEBwQ9iI6K9YBqVfSBiiUXbxW5cdlk4jL2p2qTdYf_2B0IJuKapfzMltNFhHuXldcO6EAA"
   timeout: 60              # Init timeout in seconds
   auto_refresh: true       # Auto-refresh session cookies
   refresh_interval: 540    # Refresh interval in seconds

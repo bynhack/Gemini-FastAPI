@@ -1,0 +1,10 @@
+# Runtime dependencies (derived from pyproject.toml)
+fastapi>=0.115.12
+uvicorn>=0.34.1
+# uvloop 在 Windows 上不可用；Linux/macOS 建议安装
+uvloop>=0.21.0; sys_platform != "win32"
+loguru>=0.7.0
+lmdb>=1.6.2
+pydantic-settings[yaml]>=2.9.1
+# Web Gemini 客户端
+gemini-webapi>=1.16.0

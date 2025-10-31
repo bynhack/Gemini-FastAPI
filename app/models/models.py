@@ -101,3 +101,27 @@ class ConversationInStore(BaseModel):
         ..., description="Metadata for Gemini API to locate the conversation"
     )
     messages: list[Message] = Field(..., description="Message contents in the conversation")
+
+class ImageData(BaseModel):
+    """Image generation item (OpenAI Images-compatible)."""
+
+    url: Optional[str] = None
+    b64_json: Optional[str] = None
+
+
+class ImagesGenerateRequest(BaseModel):
+    """Images API generation request (subset)."""
+
+    model: str
+    prompt: str
+    n: Optional[int] = 1
+    size: Optional[str] = None
+    response_format: Optional[Literal["url", "b64_json"]] = "url"
+    user: Optional[str] = None
+
+
+class ImagesGenerateResponse(BaseModel):
+    """Images API generation response (subset)."""
+
+    created: int
+    data: List[ImageData]
